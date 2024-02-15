@@ -1,28 +1,20 @@
 const { hash, compare } = require("bcryptjs")
 const AppError = require("../utils/AppError")
+
 const sqliteConnection = require("../database/sqlite")
+const UserRepository = require("../repositories/UserRepository")
+const UserCreateService = require("../services/UserCreateService")
 
 class UsersController {
 
-    // index - GET para listar varios registros
-    // show - GET para exibir um registro especifico
-    // create - POST para criar um registro
-    // update - PUT para atualizar um registro
-    // delete - DELETE para remover um registro
 
     async create(request, response) {
         const { name, email, password } = request.body
 
-        const database = await sqliteConnection()
-        const checkUserExists = await database.get("SELECT * FROM users WHERE email = (?)", [email])
+        const userRepository = new UserRepository()
+        const userCreateService = new UserCreateService(userRepository)
+        await userCreateService.execute({ name, email, password })
 
-        if (checkUserExists) {
-            throw new AppError("Email ja em uso")
-        }
-
-        const hashedPassword = await hash(password, 8)
-
-        await database.run("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", [name, email, hashedPassword])
 
         return response.status(201).json()
     }
@@ -54,7 +46,7 @@ class UsersController {
         if (password && old_password) {
             const checkOldPassword = await compare(old_password, user.password)
 
-            if(!checkOldPassword){
+            if (!checkOldPassword) {
                 throw new AppError("Senha antiga incorreta")
             }
 
@@ -67,11 +59,11 @@ class UsersController {
             email = ?,
             password = ?,
             updated_at = DATETIME('now')
-            WHERE id = ?`, 
+            WHERE id = ?`,
             [user.name, user.email, user.password, user_id]
-            )
+        )
 
-            return response.json()
+        return response.json()
     }
 
 }
